@@ -13,6 +13,7 @@ public class ChatThread extends Thread {
     ChatServer myServer;    // ChatServer 객체
     Socket mySocket;        // 클라이언트 소켓
     String clientName;
+    ChatClient chatClient;
 
     PrintWriter out;        // 입출력 스트림
     BufferedReader in;
@@ -98,12 +99,20 @@ public class ChatThread extends Thread {
             this.clientName = name;
             // clientVector 에 클라이언트 객체 추가
             myServer.addClient(this, name);
+ 
             try {                                // 새로운 클라이언트가 접속하여 추가된 클라이언트 수를 브로드캐스트
                 myServer.broadcast("[현재 접속자수] " + myServer.clientNum + "명");
             } catch (IOException e) {
                 System.out.println(e.toString());
+                
             }
-        } else if (command.equals("LOGOUT")) {    // 받은 메시지가 LOGOUT 이면 종료 메시지이므로 제거된 클라이언트의 수를
+        }
+        
+        else if (command.equals("CHANGE")) {
+        	myServer.clientNum--; // 닉네임 변경시 클라이언트 접속자수 감소(중복방지)
+        }
+        
+        else if (command.equals("LOGOUT")) {    // 받은 메시지가 LOGOUT 이면 종료 메시지이므로 제거된 클라이언트의 수를
             String name = st.nextToken();
             myServer.clientNum--;
             try {                              // 브로드캐스트
@@ -113,7 +122,22 @@ public class ChatThread extends Thread {
                 System.out.println(e.toString());
             }
             disconnect();                        // 연결 종료
-        } else {
+        }else if(command.equals("TALKS")) {
+        	String talk = st.nextToken();
+        	String prenm = st.nextToken();
+        	String curnm = st.nextToken();
+        	myServer.removeClient(prenm);
+        	myServer.addClient(this, curnm);
+        	clientName = curnm;
+        	
+        	try {  
+                myServer.broadcast(talk);
+            } catch (IOException e) {
+                System.out.println(e.toString());
+            }
+        	
+        }
+        else {
             String talk = st.nextToken();        // 메시지의 대화 talk 부분
             try {      // LOGIN, LOGOUT 이외의 경우는 일반 메시지로 모든 클라이언트에게 받은 메시지 전송
                 myServer.broadcast(talk);

@@ -1,6 +1,16 @@
-import java.net.*;
-import java.io.*;
-import java.util.*;
+import java.awt.Button;
+import java.awt.Dialog;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.Label;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Vector;
 
 public class ChatServer {
     // HTTP socket 연결만 되어있는 정보
@@ -9,8 +19,8 @@ public class ChatServer {
     // LOGIN| 메시지를 보낸 사용자
     Hashtable<String, ChatThread> clientTable = new Hashtable<>();
     int clientNum = 0;    // 접속된 클라이언트의 수
-
-
+    ChatClient chatClient;
+    
     // 접속된 모든 클라이언트에게 메시지 msg 를 보냄
     public void broadcast(String msg) throws IOException {
         Set<String> keySet = clientTable.keySet();
@@ -22,16 +32,15 @@ public class ChatServer {
                 client.sendMessage(msg);
             }
         }
-    }
-
-
+    }   
+    
+    
     // 단일 클라이언트에게 메시지 보냄
     public void unicast(String msg, String name) throws IOException {
         ChatThread chatThread = clientTable.get(name);
         if (chatThread != null) {
             synchronized (chatThread) {
-               chatThread.sendMessage(msg);
-               
+               chatThread.sendMessage(msg);          
             }
         }
     }
@@ -50,15 +59,48 @@ public class ChatServer {
             Set<String> keys = this.clientTable.keySet();
             boolean contains = keys.contains(name);
             if (contains) {
-                // 이미 있어요~~ msg
-                return;
+            	dialog(); // 다이얼로그 실행
+            	client.stop(); //클라이언트 접속 제한
             }
+            else {
             this.clientNum++;
 
-            this.clientTable.put(name, client);
+            this.clientTable.put(name, client);         
+            }
         }
-    }
+    }  
+    public static void dialog() {
+        Frame f = new Frame("채팅");
+        f.setSize(300,200);
 
+        Dialog info = new Dialog(f, "중복 알림", true);
+        info.setSize(140,90);
+        info.setLocation(50,50);
+        info.setLayout(new FlowLayout());
+
+        Label msg = new Label("닉네임이 중복 되었습니다. 재접속 해주세요.",Label.CENTER);
+        Button ok = new Button("OK");
+
+        ok.addActionListener(new ActionListener(){
+
+            //OK버튼을 누르면 수행됨.
+
+            public void actionPerformed(ActionEvent e){
+
+                   //info.setVisible(false);  //Dialog를 안보이게 한다.
+                    f.dispose();
+                   info.dispose();     //Dialog를 메모리에서 없앤다.
+            }
+
+     });
+        info.add(msg);
+        info.add(ok);
+
+        f.setVisible(true);
+        info.setVisible(true);
+
+
+    }
     // 서버의 시작 메인 메소드
     public static void main(String[] args) {
         // 서버 소켓
@@ -87,6 +129,7 @@ public class ChatServer {
                 client.start();
                 // clientVector 에 클라이언트 객체 추가
                 myServer.addConnectedScoket(client);
+
             }
         } catch (IOException e) {
             System.out.println(e.toString());
